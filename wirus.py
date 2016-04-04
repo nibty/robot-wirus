@@ -43,8 +43,8 @@ class Wirus:
         logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
 
         GPIO.setmode(GPIO.BCM)
-        self.pwm.setPWMFreq(60)
-        self.pwm.setPWM(0, 0, config.SERVO_HALF)
+        self.pwm.setPWMFreq(config.PWM_FREQUENCY)
+        self.pwm.setPWM(config.PWM_DISTANCE_SERVO_CHANNEL, 0, config.SERVO_HALF)
 
         GPIO.setup(config.LEFT_MOTOR_ENCODER, GPIO.IN, pull_up_down=GPIO.PUD_UP)
         GPIO.setup(config.RIGHT_MOTOR_ENCODER, GPIO.IN, pull_up_down=GPIO.PUD_UP)
@@ -233,13 +233,13 @@ class Wirus:
     def set_left_motor_speed(self, speed):
         if self.left_motor_speed != speed and (100 >= speed > 0):
             logging.info("set left speed: %d", speed)
-            self.pwm.setPWM(1, 0, int(speed * 40))
+            self.pwm.setPWM(config.PWM_LEFT_MOTOR_SPEED_CHANNEL, 0, int(speed * 40))
             self.left_motor_speed = speed
 
     def set_right_motor_speed(self, speed):
         if self.right_motor_speed != speed and (100 >= speed > 0):
             logging.info("set right speed: %d", speed)
-            self.pwm.setPWM(2, 0, int(speed * 40))
+            self.pwm.setPWM(config.PWM_RIGHT_MOTOR_SPEED_CHANNEL, 0, int(speed * 40))
             self.right_motor_speed = speed
 
     def distance_to_speed(self, speed):
@@ -318,4 +318,4 @@ class Wirus:
 
     def set_servo(self, servo):
         logging.debug("set servo: %d", servo)
-        self.pwm.setPWM(0, 0, servo)
+        self.pwm.setPWM(config.PWM_DISTANCE_SERVO_CHANNEL, 0, servo)

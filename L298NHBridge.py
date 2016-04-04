@@ -16,6 +16,7 @@
 # Import the libraries the class needs
 import RPi.GPIO as io
 from Adafruit_PWM_Servo_Driver import PWM
+import config
 
 io.setmode(io.BCM)
 
@@ -28,13 +29,13 @@ io.setwarnings(False)
 # Here we configure the GPIO settings for the left and right motors spinning direction. 
 # It defines the four GPIO pins used as input on the L298 H-Bridge to set the motor mode (forward, reverse and stopp).
 
-leftmotor_in1_pin = 18
-leftmotor_in2_pin = 17
+leftmotor_in1_pin = config.LEFT_MOTOR_BACKWARD
+leftmotor_in2_pin = config.LEFT_MOTOR_FORWARD
 io.setup(leftmotor_in1_pin, io.OUT)
 io.setup(leftmotor_in2_pin, io.OUT)
 
-rightmotor_in1_pin = 12
-rightmotor_in2_pin = 16
+rightmotor_in1_pin = config.RIGHT_MOTOR_BACKWARD
+rightmotor_in2_pin = config.RIGHT_MOTOR_FORWARD
 io.setup(rightmotor_in1_pin, io.OUT)
 io.setup(rightmotor_in2_pin, io.OUT)
 
@@ -46,8 +47,8 @@ io.output(rightmotor_in2_pin, False)
 # Here we configure the GPIO settings for the left and right motors spinning speed. 
 # It defines the two GPIO pins used as input on the L298 H-Bridge to set the motor speed with a PWM signal.
 
-pwm = PWM(0x40)
-pwm.setPWMFreq(60)
+pwm = PWM(config.PWM_ADDRESS)
+pwm.setPWMFreq(config.PWM_FREQUENCY)
 
 # leftmotorpwm_pin = 4
 # rightmotorpwm_pin = 17
@@ -67,12 +68,12 @@ pwm.setPWMFreq(60)
 
 def set_left_motor_speed(speed):
     print "set_left_motor_speed " + str(speed)
-    pwm.setPWM(1, 0, int(speed * 40))
+    pwm.setPWM(config.PWM_LEFT_MOTOR_SPEED_CHANNEL, 0, int(speed * 40))
 
 
 def set_right_motor_speed(speed):
     print "set_right_motor_speed " + str(speed)
-    pwm.setPWM(2, 0, int(speed * 40))
+    pwm.setPWM(config.PWM_RIGHT_MOTOR_SPEED_CHANNEL, 0, int(speed * 40))
 
 
 def setMotorMode(motor, mode):
