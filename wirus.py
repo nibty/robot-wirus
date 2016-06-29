@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 import RPi.GPIO as GPIO
 import time
@@ -40,7 +40,7 @@ class Wirus:
 
     def setup(self):
         signal.signal(signal.SIGINT, self.signal_handler)
-        logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
+        logging.basicConfig(filename='var/log/wirus.log', format='%(asctime)s %(message)s', level=logging.INFO)
 
         GPIO.setmode(GPIO.BCM)
         self.pwm.setPWMFreq(config.PWM_FREQUENCY)

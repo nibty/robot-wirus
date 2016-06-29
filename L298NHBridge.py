@@ -14,35 +14,35 @@
 # HBridge.Init()
 
 # Import the libraries the class needs
-import RPi.GPIO as io
+import RPi.GPIO as GPIO
 from Adafruit_PWM_Servo_Driver import PWM
 import config
 
-io.setmode(io.BCM)
+GPIO.setmode(GPIO.BCM)
 
 # Constant values
 PWM_MAX                 = 100
 
 # Disable warning from GPIO
-io.setwarnings(False)
+GPIO.setwarnings(False)
 
 # Here we configure the GPIO settings for the left and right motors spinning direction. 
 # It defines the four GPIO pins used as input on the L298 H-Bridge to set the motor mode (forward, reverse and stopp).
 
 leftmotor_in1_pin = config.LEFT_MOTOR_BACKWARD
 leftmotor_in2_pin = config.LEFT_MOTOR_FORWARD
-io.setup(leftmotor_in1_pin, io.OUT)
-io.setup(leftmotor_in2_pin, io.OUT)
+GPIO.setup(leftmotor_in1_pin, GPIO.OUT)
+GPIO.setup(leftmotor_in2_pin, GPIO.OUT)
 
 rightmotor_in1_pin = config.RIGHT_MOTOR_BACKWARD
 rightmotor_in2_pin = config.RIGHT_MOTOR_FORWARD
-io.setup(rightmotor_in1_pin, io.OUT)
-io.setup(rightmotor_in2_pin, io.OUT)
+GPIO.setup(rightmotor_in1_pin, GPIO.OUT)
+GPIO.setup(rightmotor_in2_pin, GPIO.OUT)
 
-io.output(leftmotor_in1_pin, False)
-io.output(leftmotor_in2_pin, False)
-io.output(rightmotor_in1_pin, False)
-io.output(rightmotor_in2_pin, False)
+GPIO.output(leftmotor_in1_pin, False)
+GPIO.output(leftmotor_in2_pin, False)
+GPIO.output(rightmotor_in1_pin, False)
+GPIO.output(rightmotor_in2_pin, False)
 
 # Here we configure the GPIO settings for the left and right motors spinning speed. 
 # It defines the two GPIO pins used as input on the L298 H-Bridge to set the motor speed with a PWM signal.
@@ -53,11 +53,11 @@ pwm.setPWMFreq(config.PWM_FREQUENCY)
 # leftmotorpwm_pin = 4
 # rightmotorpwm_pin = 17
 #
-# io.setup(leftmotorpwm_pin, io.OUT)
-# io.setup(rightmotorpwm_pin, io.OUT)
+# GPIO.setup(leftmotorpwm_pin, GPIO.OUT)
+# GPIO.setup(rightmotorpwm_pin, GPIO.OUT)
 #
-# leftmotorpwm = io.PWM(leftmotorpwm_pin,100)
-# rightmotorpwm = io.PWM(rightmotorpwm_pin,100)
+# leftmotorpwm = GPIO.PWM(leftmotorpwm_pin,100)
+# rightmotorpwm = GPIO.PWM(rightmotorpwm_pin,100)
 #
 # leftmotorpwm.start(0)
 # leftmotorpwm.ChangeDutyCycle(0)
@@ -91,30 +91,30 @@ def setMotorMode(motor, mode):
 
     if motor == "leftmotor":
         if mode == "reverse":
-            io.output(leftmotor_in1_pin, True)
-            io.output(leftmotor_in2_pin, False)
+            GPIO.output(leftmotor_in1_pin, True)
+            GPIO.output(leftmotor_in2_pin, False)
         elif  mode == "forward":
-            io.output(leftmotor_in1_pin, False)
-            io.output(leftmotor_in2_pin, True)
+            GPIO.output(leftmotor_in1_pin, False)
+            GPIO.output(leftmotor_in2_pin, True)
         else:
-            io.output(leftmotor_in1_pin, False)
-            io.output(leftmotor_in2_pin, False)
+            GPIO.output(leftmotor_in1_pin, False)
+            GPIO.output(leftmotor_in2_pin, False)
 
     elif motor == "rightmotor":
         if mode == "reverse":
-            io.output(rightmotor_in1_pin, False)
-            io.output(rightmotor_in2_pin, True)
+            GPIO.output(rightmotor_in1_pin, False)
+            GPIO.output(rightmotor_in2_pin, True)
         elif  mode == "forward":
-            io.output(rightmotor_in1_pin, True)
-            io.output(rightmotor_in2_pin, False)
+            GPIO.output(rightmotor_in1_pin, True)
+            GPIO.output(rightmotor_in2_pin, False)
         else:
-            io.output(rightmotor_in1_pin, False)
-            io.output(rightmotor_in2_pin, False)
+            GPIO.output(rightmotor_in1_pin, False)
+            GPIO.output(rightmotor_in2_pin, False)
     else:
-        io.output(leftmotor_in1_pin, False)
-        io.output(leftmotor_in2_pin, False)
-        io.output(rightmotor_in1_pin, False)
-        io.output(rightmotor_in2_pin, False)
+        GPIO.output(leftmotor_in1_pin, False)
+        GPIO.output(leftmotor_in2_pin, False)
+        GPIO.output(rightmotor_in1_pin, False)
+        GPIO.output(rightmotor_in2_pin, False)
 
 def setMotorLeft(power):
 
@@ -182,8 +182,8 @@ def setMotorRight(power):
 
 def exit():
     # Program will clean up all GPIO settings and terminates
-    io.output(leftmotor_in1_pin, False)
-    io.output(leftmotor_in2_pin, False)
-    io.output(rightmotor_in1_pin, False)
-    io.output(rightmotor_in2_pin, False)
-    io.cleanup()
+    GPIO.output(leftmotor_in1_pin, False)
+    GPIO.output(leftmotor_in2_pin, False)
+    GPIO.output(rightmotor_in1_pin, False)
+    GPIO.output(rightmotor_in2_pin, False)
+    GPIO.cleanup()
