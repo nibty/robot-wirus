@@ -5,6 +5,7 @@
 
 import sys, tty, termios, os
 import L298NHBridge as HBridge
+import wirus
 
 speedleft = 0
 speedright = 0
@@ -12,6 +13,7 @@ speedright = 0
 # Instructions for when the user has an interface
 print("w/s: direction")
 print("a/d: steering")
+print("e: autonomous mode")
 print("q: stops the motors")
 print("p: print motor speed (L/R)")
 print("x: exit")
@@ -145,6 +147,10 @@ while True:
         HBridge.exit()
         print("Program Ended")
         break
+
+    if (char == "e"):
+        HBridge.exit()
+        wirus.Wirus()
 
         # The keyboard character variable char has to be set blank. We need
     # to set it blank to save the next key pressed by the user

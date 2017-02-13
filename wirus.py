@@ -9,6 +9,10 @@ import config
 from threading import Thread
 import ultrasonic_senor
 from Adafruit_PWM_Servo_Driver import PWM
+import termios
+import tty
+import L298NHBridge as HBridge
+import os
 
 
 class Wirus:
@@ -27,20 +31,35 @@ class Wirus:
         self.time_of_last_turn = time.time()
         self.time_of_last_stuck = time.time()
 
+        self.speed_left = 0
+        self.speed_right = 0
+
         self.last_turn_right = True
         self.left_motor_rotation = 0
         self.right_motor_rotation = 0
         self.right_motor_rotation_per_min = 0
         self.left_motor_rotation_per_min = 0
 
-        self.thread = Thread(target=self.wheel_check_thread, args=())
-        self.wheel_check_running = True
+        self.wheel_check_thread = Thread(target=self.wheel_check_thread_function, args=())
+        self.keyboard_thread = Thread(target=self.keyboard_thread_function, args=())
+        self.autonomous_thread = Thread(target=self.autonomous, args=())
+
+        self.keyboard_check_running = False
+        self.wheel_check_running = False
+        self.autonomous_thread_running = False
+        self.autonomous_thread_pause = False
+
+        self.printscreen()
         self.setup()
-        self.main()
+        time.sleep(1)
+
+        self.start_wheel_check_thread()
+        self.start_autonomous_thread()
+        self.start_keyboard_thread()
 
     def setup(self):
         signal.signal(signal.SIGINT, self.signal_handler)
-        logging.basicConfig(filename='/var/log/wirus.log', format='%(asctime)s %(message)s', level=logging.INFO)
+        logging.basicConfig(filename='/var/log/wirus.log', format='%(asctime)s %(message)s', level=logging.DEBUG)
 
         GPIO.setmode(GPIO.BCM)
         self.pwm.setPWMFreq(config.PWM_FREQUENCY)
@@ -53,15 +72,193 @@ class Wirus:
 
         self.set_motor_speed(config.DEFAULT_SPEED)
 
-        logging.info("get ready")
-        time.sleep(1)
-        self.start_forward()
-        time.sleep(.5)
+    def get_unstuck(self):
+        # if self.get_time_since_last_turn() < TIME_SINCE_LAST_TURN_THRESHOLD and not self.last_turn_right:
+            self.backward(config.BACKWARD_TIME * 2)
+            self.rotate_right(1)
+        # else:
+        #     self.forward(1)
+        #     self.rotate_left(1)
 
-    def main(self):
-        self.start_wheel_check_thread()
+    def signal_handler(self, signal, frame):
+        logging.info("clean up")
+        GPIO.cleanup()
+        self.exit()
 
+    def exit(self):
+        self.wheel_check_running = False
+        self.keyboard_check_running = False
+        self.autonomous_thread_running = False
+
+        try:
+            self.autonomous_thread.join()
+            self.keyboard_thread.join()
+            self.wheel_check_thread.join()
+        except RuntimeError:
+            pass
+
+        GPIO.cleanup()
+        sys.exit()
+
+    def start_wheel_check_thread(self):
+        self.wheel_check_running = True
+        self.wheel_check_thread.start()
+
+    def start_keyboard_thread(self):
+        self.keyboard_check_running = True
+        self.keyboard_thread.start()
+
+    def keyboard_thread_function(self):
+        while self.keyboard_check_running:
+            self.keyboard_check()
+
+    def wheel_check_thread_function(self):
+        while self.wheel_check_running:
+            if self.autonomous_thread_pause:
+                time.sleep(.1)
+                continue
+
+            self.wheel_check()
+
+    def keyboard_check(self):
         while True:
+            char = self.getch()
+
+            if char == "x" or char == "z":
+                self.exit()
+
+            elif char == "q":
+                self.stop()
+
+            elif char == "w":
+                self.forwards()
+
+            elif char == "s":
+                self.backwards()
+
+            elif char == "d":
+                self.right()
+
+            elif char == "a":
+                self.left()
+
+            elif char == "e" and self.autonomous_thread_pause:
+                self.start_autonomous()
+
+            elif char == "e":
+                self.pause_autonomous()
+
+    def forwards(self):
+        if not self.autonomous_thread_pause:
+            self.pause_autonomous()
+
+        if self.speed_left > self.speed_right:
+            self.speed_right = self.speed_left
+        else:
+            self.speed_left = self.speed_right
+
+        self.speed_left += 0.1
+        self.speed_right += 0.1
+
+        if self.speed_left > 1:
+            self.speed_left = 1
+
+        if self.speed_right > 1:
+            self.speed_right = 1
+
+        HBridge.setMotorLeft(self.speed_left)
+        HBridge.setMotorRight(self.speed_right)
+        self.printscreen()
+
+    def backwards(self):
+        if not self.autonomous_thread_pause:
+            self.pause_autonomous()
+
+        if self.speed_left < self.speed_right:
+            self.speed_right = self.speed_left
+        else:
+            self.speed_left = self.speed_right
+
+        self.speed_left -= 0.1
+        self.speed_right -= 0.1
+
+        if self.speed_left < -1:
+            self.speed_left = -1
+        if self.speed_right < -1:
+            self.speed_right = -1
+
+        HBridge.setMotorLeft(self.speed_left)
+        HBridge.setMotorRight(self.speed_right)
+        self.printscreen()
+
+    def right(self):
+        if not self.autonomous_thread_pause:
+            self.pause_autonomous()
+
+        self.speed_right -= 0.1
+        self.speed_left += 0.1
+
+        if self.speed_right < -1:
+            self.speed_right = -1
+
+        if self.speed_left > 1:
+            self.speed_left = 1
+
+        HBridge.setMotorLeft(self.speed_left)
+        HBridge.setMotorRight(self.speed_right)
+        self.printscreen()
+
+    def left(self):
+        if not self.autonomous_thread_pause:
+            self.pause_autonomous()
+
+        self.speed_left -= 0.1
+        self.speed_right += 0.1
+
+        if self.speed_left < -1:
+            self.speed_left = -1
+
+        if self.speed_right > 1:
+            self.speed_right = 1
+
+        HBridge.setMotorLeft(self.speed_left)
+        HBridge.setMotorRight(self.speed_right)
+        self.printscreen()
+
+    def stop(self):
+        if not self.autonomous_thread_pause:
+            self.pause_autonomous()
+
+        self.speed_left = 0
+        self.speed_right = 0
+        HBridge.setMotorLeft(0)
+        HBridge.setMotorRight(0)
+        self.printscreen()
+
+    def start_autonomous(self):
+        logging.info("Start autonomous mode")
+        self.stop()
+        self.start_forward()
+        self.autonomous_thread_pause = False
+        self.printscreen()
+
+    def pause_autonomous(self):
+        logging.info("Pause autonomous mode")
+        self.stop_forward()
+        self.autonomous_thread_pause = True
+        self.printscreen()
+
+    def start_autonomous_thread(self):
+        self.autonomous_thread_running = True
+        self.autonomous_thread.start()
+
+    def autonomous(self):
+        while self.autonomous_thread_running:
+            if self.autonomous_thread_pause:
+                time.sleep(.1)
+                self.time_of_last_stuck = time.time()
+                continue
+
             self.start_forward()
 
             if config.SERVO_ON:
@@ -79,28 +276,15 @@ class Wirus:
                 self.stop_forward()
                 self.get_unstuck()
 
-    def get_unstuck(self):
-        # if self.get_time_since_last_turn() < TIME_SINCE_LAST_TURN_THRESHOLD and not self.last_turn_right:
-            self.backward(2)
-            self.rotate_right(1)
-        # else:
-        #     self.forward(1)
-        #     self.rotate_left(1)
-
-    def signal_handler(self, signal, frame):
-        logging.info("clean up")
-        GPIO.cleanup()
-        self.wheel_check_running = False
-        self.thread.join()
-        sys.exit()
-
-    def start_wheel_check_thread(self):
-        self.wheel_check_running = True
-        self.thread.start()
-
-    def wheel_check_thread(self):
-        while self.wheel_check_running:
-            self.wheel_check()
+    def getch(self):
+        fd = sys.stdin.fileno()
+        old_settings = termios.tcgetattr(fd)
+        try:
+            tty.setraw(sys.stdin.fileno())
+            ch = sys.stdin.read(1)
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+        return ch
 
     def wheel_check(self):
         logging.info("running wheel check")
@@ -278,10 +462,10 @@ class Wirus:
             GPIO.output(config.RIGHT_MOTOR_FORWARD, True)
 
     def is_robot_stuck(self):
-        if time.time() - self.time_of_last_stuck > 2:
+        if time.time() - self.time_of_last_stuck > config.WHEEL_MOVEMENT_STUCK_TIME:
             if self.left_motor_rotation_per_min < config.WHEEL_MOVEMENT_STUCK_THRESHOLD \
                     or self.right_motor_rotation_per_min < config.WHEEL_MOVEMENT_STUCK_THRESHOLD:
-                print "ROBOT STUCK!!"
+                logging.error("robot stuck")
                 self.time_of_last_stuck = time.time()
                 return True
 
@@ -319,3 +503,19 @@ class Wirus:
     def set_servo(self, servo):
         logging.debug("set servo: %d", servo)
         self.pwm.setPWM(config.PWM_DISTANCE_SERVO_CHANNEL, 0, servo)
+
+    def printscreen(self):
+        # Print the motor speed just for interest
+        os.system('clear')
+        if not self.autonomous_thread_pause:
+            print "******* autonomous mode ********"
+            print ""
+
+        print("w/s: direction")
+        print("a/d: steering")
+        print("q: stops the motors")
+        print("e: autonomous mode")
+        print("x: exit")
+        print("========== Speed Control ==========")
+        print "left motor:  ", self.speed_left
+        print "right motor: ", self.speed_right

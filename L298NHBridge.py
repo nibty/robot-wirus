@@ -34,8 +34,8 @@ leftmotor_in2_pin = config.LEFT_MOTOR_FORWARD
 GPIO.setup(leftmotor_in1_pin, GPIO.OUT)
 GPIO.setup(leftmotor_in2_pin, GPIO.OUT)
 
-rightmotor_in1_pin = config.RIGHT_MOTOR_BACKWARD
-rightmotor_in2_pin = config.RIGHT_MOTOR_FORWARD
+rightmotor_in1_pin = config.RIGHT_MOTOR_FORWARD
+rightmotor_in2_pin = config.RIGHT_MOTOR_BACKWARD
 GPIO.setup(rightmotor_in1_pin, GPIO.OUT)
 GPIO.setup(rightmotor_in2_pin, GPIO.OUT)
 
@@ -67,12 +67,12 @@ pwm.setPWMFreq(config.PWM_FREQUENCY)
 
 
 def set_left_motor_speed(speed):
-    print "set_left_motor_speed " + str(speed)
+    # print "set_left_motor_speed " + str(speed)
     pwm.setPWM(config.PWM_LEFT_MOTOR_SPEED_CHANNEL, 0, int(speed * 40))
 
 
 def set_right_motor_speed(speed):
-    print "set_right_motor_speed " + str(speed)
+    # print "set_right_motor_speed " + str(speed)
     pwm.setPWM(config.PWM_RIGHT_MOTOR_SPEED_CHANNEL, 0, int(speed * 40))
 
 
@@ -187,3 +187,4 @@ def exit():
     GPIO.output(rightmotor_in1_pin, False)
     GPIO.output(rightmotor_in2_pin, False)
     GPIO.cleanup()
+
