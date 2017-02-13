@@ -32,6 +32,7 @@ class Wirus:
         self.right_motor_rotation = 0
         self.right_motor_rotation_per_min = 0
         self.left_motor_rotation_per_min = 0
+        self.detect_running = False
 
         self.thread = Thread(target=self.wheel_check_thread, args=())
         self.wheel_check_running = True
@@ -40,16 +41,22 @@ class Wirus:
 
     def setup(self):
         signal.signal(signal.SIGINT, self.signal_handler)
-        logging.basicConfig(filename='var/log/wirus.log', format='%(asctime)s %(message)s', level=logging.INFO)
+        logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
 
         GPIO.setmode(GPIO.BCM)
         self.pwm.setPWMFreq(config.PWM_FREQUENCY)
         self.pwm.setPWM(config.PWM_DISTANCE_SERVO_CHANNEL, 0, config.SERVO_HALF)
+        time.sleep(5)
 
         GPIO.setup(config.LEFT_MOTOR_ENCODER, GPIO.IN, pull_up_down=GPIO.PUD_UP)
         GPIO.setup(config.RIGHT_MOTOR_ENCODER, GPIO.IN, pull_up_down=GPIO.PUD_UP)
         GPIO.add_event_detect(config.LEFT_MOTOR_ENCODER, GPIO.RISING, callback=self.left_motor_encoder_callback)
         GPIO.add_event_detect(config.RIGHT_MOTOR_ENCODER, GPIO.RISING, callback=self.right_motor_encoder_callback)
+
+        GPIO.setup(config.LEFT_EDGE_SENSOR, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+        GPIO.setup(config.RIGHT_EDGE_SENSOR, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+        GPIO.add_event_detect(config.LEFT_EDGE_SENSOR, GPIO.RISING, callback=self.left_edge_detect, bouncetime=100)
+        GPIO.add_event_detect(config.RIGHT_EDGE_SENSOR, GPIO.RISING, callback=self.right_edge_detect, bouncetime=100)
 
         self.set_motor_speed(config.DEFAULT_SPEED)
 
@@ -58,26 +65,65 @@ class Wirus:
         self.start_forward()
         time.sleep(.5)
 
+    def left_edge_detect(self, channel):
+        if GPIO.input(channel) and not self.detect_running:
+            self.detect_running = True
+            print "left edge detect"
+            self.stop_forward()
+            self.backward(config.BACKWARD_TIME)
+            self.auto_turn(config.SERVO_MIN)
+            if not GPIO.input(config.RIGHT_EDGE_SENSOR) and not GPIO.input(config.LEFT_EDGE_SENSOR):
+                self.start_forward()
+
+            self.detect_running = False
+
+    def right_edge_detect(self, channel):
+        if GPIO.input(channel) and not self.detect_running:
+            self.detect_running = True
+            print "right edge detect"
+            self.stop_forward()
+            self.backward(config.BACKWARD_TIME)
+            self.auto_turn(config.SERVO_MAX)
+
+            if not GPIO.input(config.RIGHT_EDGE_SENSOR) and not GPIO.input(config.LEFT_EDGE_SENSOR):
+                self.start_forward()
+
+            self.detect_running = False
+
     def main(self):
-        self.start_wheel_check_thread()
+        # self.start_wheel_check_thread()
+        self.start_forward()
 
         while True:
-            self.start_forward()
+            if GPIO.input(config.LEFT_EDGE_SENSOR) or GPIO.input(config.RIGHT_EDGE_SENSOR):
+                print "don't move forward"
+                self.stop_forward()
+
+            time.sleep(.1)
+            #
+            # if not self.detect_running:
+            #     self.start_forward()
+
+            # print self.detect_running
 
             if config.SERVO_ON:
                 servo = self.next_step()
                 self.set_servo(servo)
 
-            distance = self.get_top_distance()
-
-            if self.object_detected(distance, servo):
-                self.stop_forward()
-                self.backward(config.BACKWARD_TIME)
-                self.auto_turn(servo)
-
-            elif self.is_robot_stuck():
-                self.stop_forward()
-                self.get_unstuck()
+            # distance = self.get_top_distance()
+            #
+            # if self.object_detected(distance, servo):
+            #     self.stop_forward()
+            #     self.pwm.setPWM(config.PWM_DISTANCE_SERVO_CHANNEL, 0, config.SERVO_HALF)
+            #     time.sleep(2)
+            #         # self.backward(config.BACKWARD_TIME)
+            #         # self.auto_turn(servo)
+            #         #
+            #     # elif self.is_robot_stuck():
+            #     #     self.stop_forward()
+            #     #     self.get_unstuck()
+            #
+            # self.detect_running = False
 
     def get_unstuck(self):
         # if self.get_time_since_last_turn() < TIME_SINCE_LAST_TURN_THRESHOLD and not self.last_turn_right:
@@ -319,3 +365,4 @@ class Wirus:
     def set_servo(self, servo):
         logging.debug("set servo: %d", servo)
         self.pwm.setPWM(config.PWM_DISTANCE_SERVO_CHANNEL, 0, servo)
+
