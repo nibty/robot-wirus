@@ -34,8 +34,8 @@ leftmotor_in2_pin = config.LEFT_MOTOR_FORWARD
 io.setup(leftmotor_in1_pin, io.OUT)
 io.setup(leftmotor_in2_pin, io.OUT)
 
-rightmotor_in1_pin = config.RIGHT_MOTOR_BACKWARD
-rightmotor_in2_pin = config.RIGHT_MOTOR_FORWARD
+rightmotor_in2_pin = config.RIGHT_MOTOR_BACKWARD
+rightmotor_in1_pin = config.RIGHT_MOTOR_FORWARD
 io.setup(rightmotor_in1_pin, io.OUT)
 io.setup(rightmotor_in2_pin, io.OUT)
 
