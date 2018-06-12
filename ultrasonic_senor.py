@@ -9,7 +9,6 @@ import math
 import RPi.GPIO as GPIO
 import numpy as np
 
-
 class Measurement(object):
     '''Create a measurement using a HC-SR04 Ultrasonic Sensor connected to 
     the GPIO pins of a Raspberry Pi.
@@ -32,11 +31,20 @@ class Measurement(object):
         self.unit = unit
         self.round_to = round_to
 
-    def __reject_outliers(self, data, m=2.):
-        d = np.abs(data - np.median(data))
-        mdev = np.median(d)
-        s = d / mdev if mdev else 0.
-        return data[s < m]
+    def __reject_outliers(self, data, m=2):
+        return data[abs(data - np.mean(data)) < m * np.std(data)]
+
+    def removeOutliers(sefl, x, outlierConstant):
+        a = np.array(x)
+        upper_quartile = np.percentile(a, 75)
+        lower_quartile = np.percentile(a, 25)
+        IQR = (upper_quartile - lower_quartile) * outlierConstant
+        quartileSet = (lower_quartile - IQR, upper_quartile + IQR)
+        resultList = []
+        for y in a.tolist():
+            if y >= quartileSet[0] and y <= quartileSet[1]:
+                resultList.append(y)
+        return resultList
 
     def raw_distance(self, sample_size=11, sample_wait=0.1):
         '''Return an error corrected unrounded distance, in cm, of an object 
@@ -127,9 +135,10 @@ class Measurement(object):
         elif len(sample) < 1:
             return 200
 
-        filtered = self.__reject_outliers(np.array(sample), 2)
+        if len(sample) > 0:
+            sample = self.removeOutliers(sample, 2)
 
-        return np.mean(filtered)
+        return np.mean(sample)
 
     def depth_metric(self, median_reading, hole_depth):
         '''Calculate the rounded metric depth of a liquid. hole_depth is the
