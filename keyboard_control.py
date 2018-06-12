@@ -50,8 +50,6 @@ while True:
     # the pressed key into the variable char
     char = getch()
 
-
-
     # The car will drive forward when the "w" key is pressed
     if(char == "w"):
 

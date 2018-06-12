@@ -24,13 +24,12 @@ class Wirus:
         self.right_motor_speed = 0
         self.moving = False
         self.current_step = 0
-        self.default_speed_power = 70
+        self.default_speed_power = config.DEFAULT_SPEED
         self.left_motor_speed_handicap = 0
         self.right_motor_speed_handicap = 0
         self.time_of_last_wheel_check = time.time()
         self.time_of_last_turn = time.time()
         self.time_of_last_stuck = time.time()
-
         self.speed_left = 0
         self.speed_right = 0
 
@@ -39,10 +38,12 @@ class Wirus:
         self.right_motor_rotation = 0
         self.right_motor_rotation_per_min = 0
         self.left_motor_rotation_per_min = 0
+        self.current_distance = 100
 
         self.wheel_check_thread = Thread(target=self.wheel_check_thread_function, args=())
         self.keyboard_thread = Thread(target=self.keyboard_thread_function, args=())
         self.autonomous_thread = Thread(target=self.autonomous, args=())
+        self.servo_pos = config.SERVO_HALF
 
         self.keyboard_check_running = False
         self.wheel_check_running = False
@@ -59,8 +60,7 @@ class Wirus:
 
     def setup(self):
         signal.signal(signal.SIGINT, self.signal_handler)
-        logging.basicConfig(filename='/var/log/wirus.log', format='%(asctime)s %(message)s', level=logging.DEBUG)
-
+        logging.basicConfig(filename='/var/log/wirus.log', format='%(levelname)s %(asctime)s %(message)s', level=logging.INFO)
         GPIO.setmode(GPIO.BCM)
         self.pwm.setPWMFreq(config.PWM_FREQUENCY)
         self.pwm.setPWM(config.PWM_DISTANCE_SERVO_CHANNEL, 0, config.SERVO_HALF)
@@ -141,6 +141,15 @@ class Wirus:
 
             elif char == "a":
                 self.left()
+
+            elif char == "i":
+                self.sensor_left()
+
+            elif char == "o":
+                self.sensor_center()
+
+            elif char == "p":
+                self.sensor_right()
 
             elif char == "e" and self.autonomous_thread_pause:
                 self.start_autonomous()
@@ -235,6 +244,28 @@ class Wirus:
         HBridge.setMotorRight(0)
         self.printscreen()
 
+    def sensor_right(self):
+        if not self.autonomous_thread_pause:
+            self.pause_autonomous()
+        self.set_servo(config.STEP_POS[0])
+        self.current_distance = self.get_top_distance()
+        self.printscreen()
+
+    def sensor_left(self):
+        if not self.autonomous_thread_pause:
+            self.pause_autonomous()
+        self.set_servo(config.STEP_POS[4])
+        self.current_distance = self.get_top_distance()
+        self.printscreen()
+
+    def sensor_center(self):
+        if not self.autonomous_thread_pause:
+            self.pause_autonomous()
+        self.set_servo(config.STEP_POS[2])
+        self.current_distance = self.get_top_distance()
+
+        self.printscreen()
+
     def start_autonomous(self):
         logging.info("Start autonomous mode")
         self.stop()
@@ -265,9 +296,9 @@ class Wirus:
                 servo = self.next_step()
                 self.set_servo(servo)
 
-            distance = self.get_top_distance()
+            self.current_distance = self.get_top_distance()
 
-            if self.object_detected(distance, servo):
+            if self.object_detected(self.current_distance, servo):
                 self.stop_forward()
                 self.backward(config.BACKWARD_TIME)
                 self.auto_turn(servo)
@@ -287,7 +318,7 @@ class Wirus:
         return ch
 
     def wheel_check(self):
-        logging.info("running wheel check")
+        logging.debug("running wheel check")
 
         self.left_motor_rotation_per_min = self.left_motor_rotation * 120
         self.left_motor_rotation = 0
@@ -295,20 +326,19 @@ class Wirus:
         self.right_motor_rotation_per_min = self.right_motor_rotation * 120
         self.right_motor_rotation = 0
 
-        logging.info("left wheel rotations: %d" % self.left_motor_rotation_per_min)
-        logging.info("right wheel rotations: %d" % self.right_motor_rotation_per_min)
+        logging.debug("left wheel rotations: %d" % self.left_motor_rotation_per_min)
+        logging.debug("right wheel rotations: %d" % self.right_motor_rotation_per_min)
 
         self.time_of_last_wheel_check = time.time()
         self.balance_wheel_speed()
-
         time.sleep(.5)
 
     def left_motor_encoder_callback(self, channel):
-        logging.debug("left motor callback")
+        #logging.debug("left motor callback")
         self.left_motor_rotation += 1
 
     def right_motor_encoder_callback(self, channel):
-        logging.debug("right motor callback")
+        #logging.debug("right motor callback")
         self.right_motor_rotation += 1
 
     def get_time_since_last_turn(self):
@@ -416,13 +446,13 @@ class Wirus:
 
     def set_left_motor_speed(self, speed):
         if self.left_motor_speed != speed and (100 >= speed > 0):
-            logging.info("set left speed: %d", speed)
+            logging.debug("set left speed: %d", speed)
             self.pwm.setPWM(config.PWM_LEFT_MOTOR_SPEED_CHANNEL, 0, int(speed * 40))
             self.left_motor_speed = speed
 
     def set_right_motor_speed(self, speed):
         if self.right_motor_speed != speed and (100 >= speed > 0):
-            logging.info("set right speed: %d", speed)
+            logging.debug("set right speed: %d", speed)
             self.pwm.setPWM(config.PWM_RIGHT_MOTOR_SPEED_CHANNEL, 0, int(speed * 40))
             self.right_motor_speed = speed
 
@@ -440,12 +470,12 @@ class Wirus:
         value = ultrasonic_senor.Measurement(config.TRIG, config.ECHO)
         raw_measurement = value.raw_distance(config.SAMPLE_SIZE, config.SAMPLE_WAIT)
         distance = int(value.distance_metric(raw_measurement))
-        logging.info("TOP sensor distance %d", distance)
+        logging.debug("TOP sensor distance %d", distance)
         return distance
 
     def stop_forward(self):
         if self.moving:
-            logging.info("stop forward movement")
+            logging.debug("stop forward movement")
 
             self.moving = False
             GPIO.output(config.LEFT_MOTOR_FORWARD, False)
@@ -453,7 +483,7 @@ class Wirus:
 
     def start_forward(self):
         if not self.moving:
-            logging.info("start forward movement")
+            logging.debug("start forward movement")
             self.moving = True
 
             GPIO.setup(config.LEFT_MOTOR_FORWARD, GPIO.OUT)
@@ -502,6 +532,7 @@ class Wirus:
 
     def set_servo(self, servo):
         logging.debug("set servo: %d", servo)
+        self.servo_pos = servo
         self.pwm.setPWM(config.PWM_DISTANCE_SERVO_CHANNEL, 0, servo)
 
     def printscreen(self):
@@ -511,6 +542,7 @@ class Wirus:
             print "******* autonomous mode ********"
             print ""
 
+        print("i/o/p: distance sensor position: ", self.servo_pos, ", distance: ", self.current_distance)
         print("w/s: direction")
         print("a/d: steering")
         print("q: stops the motors")
