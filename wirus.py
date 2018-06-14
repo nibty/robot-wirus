@@ -60,7 +60,7 @@ class Wirus:
 
     def setup(self):
         signal.signal(signal.SIGINT, self.signal_handler)
-        logging.basicConfig(filename='/var/log/wirus.log', format='%(levelname)s %(asctime)s %(message)s', level=logging.INFO)
+        logging.basicConfig(filename='/var/log/wirus.log', format='%(levelname)s %(asctime)s %(message)s', level=config.LOG_LEVEL)
         GPIO.setmode(GPIO.BCM)
         self.pwm.setPWMFreq(config.PWM_FREQUENCY)
         self.pwm.setPWM(config.PWM_DISTANCE_SERVO_CHANNEL, 0, config.SERVO_HALF)
@@ -334,11 +334,9 @@ class Wirus:
         time.sleep(.5)
 
     def left_motor_encoder_callback(self, channel):
-        #logging.debug("left motor callback")
         self.left_motor_rotation += 1
 
     def right_motor_encoder_callback(self, channel):
-        #logging.debug("right motor callback")
         self.right_motor_rotation += 1
 
     def get_time_since_last_turn(self):
