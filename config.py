@@ -47,3 +47,7 @@ WHEEL_MOVEMENT_STUCK_THRESHOLD = 3000
 PULSE_PER_METER = 78.75
 
 LOG_LEVEL = logging.DEBUG
+LOG_PATH = "/var/log/wirus.log"
+LOG_FORMAT = "%(levelname)s %(asctime)s %(message)s"
+
+CHATTINESS = 1

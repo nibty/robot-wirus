@@ -13,7 +13,7 @@ import termios
 import tty
 import L298NHBridge as HBridge
 import os
-
+import speech
 
 class Wirus:
     def __init__(self):
@@ -55,12 +55,14 @@ class Wirus:
         time.sleep(1)
 
         self.start_wheel_check_thread()
-        self.start_autonomous_thread()
         self.start_keyboard_thread()
+
+        time.sleep(5)  # dont start just yet
+        self.start_autonomous_thread()
 
     def setup(self):
         signal.signal(signal.SIGINT, self.signal_handler)
-        logging.basicConfig(filename='/var/log/wirus.log', format='%(levelname)s %(asctime)s %(message)s', level=config.LOG_LEVEL)
+        logging.basicConfig(filename=config.LOG_PATH, format=config.LOG_FORMAT, level=config.LOG_LEVEL)
         GPIO.setmode(GPIO.BCM)
         self.pwm.setPWMFreq(config.PWM_FREQUENCY)
         self.pwm.setPWM(config.PWM_DISTANCE_SERVO_CHANNEL, 0, config.SERVO_HALF)
@@ -156,6 +158,9 @@ class Wirus:
 
             elif char == "e":
                 self.pause_autonomous()
+
+            elif char == "r":
+                speech.say_something(True)
 
     def forwards(self):
         if not self.autonomous_thread_pause:
@@ -284,6 +289,8 @@ class Wirus:
         self.autonomous_thread.start()
 
     def autonomous(self):
+        speech.speak("I am Humphrey!")
+
         while self.autonomous_thread_running:
             if self.autonomous_thread_pause:
                 time.sleep(.1)
@@ -306,6 +313,8 @@ class Wirus:
             elif self.is_robot_stuck():
                 self.stop_forward()
                 self.get_unstuck()
+
+            speech.say_something()
 
     def getch(self):
         fd = sys.stdin.fileno()
@@ -545,6 +554,7 @@ class Wirus:
         print("a/d: steering")
         print("q: stops the motors")
         print("e: autonomous mode")
+        print("r: say something")
         print("x: exit")
         print("========== Speed Control ==========")
         print "left motor:  ", self.speed_left
