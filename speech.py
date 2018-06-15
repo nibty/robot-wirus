@@ -11,7 +11,8 @@ logging.basicConfig(filename=config.LOG_PATH, format=config.LOG_FORMAT, level=co
 def speak(text):
     text = text.replace("\n", " ")
     logging.debug("speak: %s" % text)
-    script_path = os.path.realpath(__file__) + "scripts/text_to_speech.sh"
+    script_path = os.path.dirname(os.path.realpath(__file__)) + "/scripts/text_to_speech.sh"
+    logging.debug(script_path)
     subprocess.Popen(["/bin/bash", script_path, text.encode()], stdout=open(os.devnull, "w"), stderr=subprocess.STDOUT)
 
 
