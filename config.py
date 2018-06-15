@@ -50,4 +50,4 @@ LOG_LEVEL = logging.DEBUG
 LOG_PATH = "/var/log/wirus.log"
 LOG_FORMAT = "%(levelname)s %(asctime)s %(message)s"
 
-CHATTINESS = 1
+CHATTINESS = 2
