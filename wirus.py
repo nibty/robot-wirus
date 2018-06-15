@@ -57,7 +57,6 @@ class Wirus:
         self.start_wheel_check_thread()
         self.start_keyboard_thread()
 
-        time.sleep(5)  # dont start just yet
         self.start_autonomous_thread()
 
     def setup(self):
